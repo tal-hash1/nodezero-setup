@@ -27,9 +27,8 @@ Disables ufw/firewalld and sets SELinux=permissive (RHEL-like).
 ⚠️ Security note: Firewall is disabled and SELinux relaxed. Use in controlled/lab environments or adjust the script before production use.
 
 Quick start
-curl -fsSLo nodezero-setup.sh https://raw.githubusercontent.com/<YOUR_USER>/<REPO>/v1.0.0/nodezero-setup.sh
+curl -fsSLo nodezero-setup.sh https://raw.githubusercontent.com/tal-hash1/nodezero-setup/refs/heads/v1.0.0/nodezero-setup.sh
 chmod +x nodezero-setup.sh && ./nodezero-setup.sh
-
 
 Interactive prompts
 
