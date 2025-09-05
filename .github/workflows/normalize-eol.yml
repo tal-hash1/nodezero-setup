@@ -1,27 +1,28 @@
 name: Normalize line endings to LF
 
 on:
-  workflow_dispatch: {}   # run manually when you want
+  workflow_dispatch: {}  # run manually from Actions tab
+
+permissions:
+  contents: write   # <-- crucial
 
 jobs:
   normalize:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Convert CRLF -> LF for targeted files
+        with:
+          persist-credentials: true   # use GITHUB_TOKEN for push
+          fetch-depth: 0              # get full history so renormalize is safe
+      - name: Enforce LF via .gitattributes & renormalize
         run: |
-          set -e
-          # Convert only the types we enforce to LF
-          git ls-files -z '*.sh' '*.bash' '*.yml' '*.yaml' '*.md' \
-            | xargs -0 sed -i 's/\r$//'
-      - name: Commit changes (if any)
-        run: |
-          git config user.name  "github-actions"
-          git config user.email "actions@github.com"
-          if ! git diff --quiet; then
-            git add -A
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config core.autocrlf false
+          git add --renormalize .
+          if ! git diff --cached --quiet; then
             git commit -m "Normalize line endings to LF"
             git push
           else
-            echo "No normalization changes needed."
+            echo "No changes to normalize."
           fi
