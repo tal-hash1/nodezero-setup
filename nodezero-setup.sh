@@ -40,9 +40,22 @@ FailMsg(){ echo -ne "${BOLD}[${RED}!${NORMAL}${BOLD}] ${RED}FAILED: $@${NORMAL}\
 WarnMsg(){ echo -ne "${BOLD}[${YELLOW}!${NORMAL}${BOLD}] ${YELLOW}WARNING: $@${NORMAL}\n"; }
 AskMsg(){ echo -ne "${BOLD}[${MAGENTA}-${NORMAL}${BOLD}] ${MAGENTA}CONFIRM: $@${NORMAL}"; }
 
-# Guardrails
-if [ "$USERNAME" == "root" ]; then FailMsg "Run as a non-root user with sudo privileges."; exit 1; fi
-if [ ! -z "$SUDO_USER" ]; then FailMsg "Do not use 'sudo' to run this script; it will use sudo where needed."; exit 1; fi
+# --- Architecture guard: require x86_64/amd64 ---
+require_x86_64() {
+  local um dp ra msg
+  um="$(uname -m 2>/dev/null || true)"
+  dp="$(command -v dpkg >/dev/null 2>&1 && dpkg --print-architecture 2>/dev/null || true)"
+  ra="$(command -v rpm  >/dev/null 2>&1 && rpm --eval '%{_arch}' 2>/dev/null || true)"
+
+  if [[ "$um" == "x86_64" ]] || [[ "$dp" == "amd64" ]] || [[ "$ra" == "x86_64" ]]; then
+    return 0
+  fi
+
+  msg="Unsupported CPU architecture. This installer requires x86_64/amd64.
+Detected: uname -m='${um:-N/A}' dpkg='${dp:-N/A}' rpm='${ra:-N/A}'"
+  FailMsg "$msg"
+  exit 1
+}
 
 yes_no_validation(){
   local question=$@
@@ -369,7 +382,7 @@ if [ "$SHLVL" = 1 ]; then
 fi
 EOT
   chown "$USERNAME":"$USERNAME" "$logout_file" 2>/dev/null || true
-  InfoMsg "Wrote new $logout_file"
+  InfoMsg "Wrote new $bash_logout"
 }
 
 warn_if_shell_not_bash() {
@@ -487,6 +500,14 @@ set_hostname_nodezero(){
 }
 
 # ---------------- Main ----------------
+
+# Guardrails
+if [ "$USERNAME" == "root" ]; then FailMsg "Run as a non-root user with sudo privileges."; exit 1; fi
+if [ ! -z "$SUDO_USER" ]; then FailMsg "Do not use 'sudo' to run this script; it will use sudo where needed."; exit 1; fi
+
+# Require x86_64/amd64 before doing anything heavy
+require_x86_64
+
 set_build
 echo; echo "> Build Version: ${BUILD}"
 echo "${BUILD}" > /tmp/nodezero-build
